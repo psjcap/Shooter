@@ -12,6 +12,7 @@
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimInstance.h"
 #include "DrawDebugHelpers.h"
+#include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
 AShooterCharacter::AShooterCharacter()
@@ -23,6 +24,7 @@ AShooterCharacter::AShooterCharacter()
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->TargetArmLength = 300.0f;
 	CameraBoom->bUsePawnControlRotation = true;
+	CameraBoom->SocketOffset = FVector(0.0f, 50.0f, 50.0f);
 
 	FollowCamera = this->CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -30,10 +32,10 @@ AShooterCharacter::AShooterCharacter()
 
 	this->bUseControllerRotationPitch = false;
 	this->bUseControllerRotationRoll = false;
-	this->bUseControllerRotationYaw = false;
+	this->bUseControllerRotationYaw = true;
 
 	UCharacterMovementComponent* Movement = this->GetCharacterMovement();
-	Movement->bOrientRotationToMovement = true;
+	Movement->bOrientRotationToMovement = false;
 	Movement->RotationRate = FRotator(0.0f, 540.0f, 0.0f);
 	Movement->JumpZVelocity = 600.0f;
 	Movement->AirControl = 0.2f;
@@ -98,11 +100,25 @@ void AShooterCharacter::FireWeapon()
 		FHitResult HitResult;
 		FVector Start = SocketTransform.GetLocation();
 		FVector End = Start + SocketTransform.GetRotation().GetAxisX() * 50'000.0f;
+		FVector BeamEndPosition = End;
+
 		this->GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility);
 		if (HitResult.bBlockingHit)
 		{
-			DrawDebugLine(this->GetWorld(), Start, End, FColor::Red, false, 2.0f);
-			DrawDebugPoint(this->GetWorld(), HitResult.Location, 5.0f, FColor::Red, false, 2.0f);
+			//DrawDebugLine(this->GetWorld(), Start, End, FColor::Red, false, 2.0f);
+			//DrawDebugPoint(this->GetWorld(), HitResult.Location, 5.0f, FColor::Red, false, 2.0f);
+
+			if (ImpactParticle != nullptr)
+				UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), ImpactParticle, HitResult.Location);
+
+			BeamEndPosition = HitResult.Location;
+		}
+
+		if (BeamParticle != nullptr)
+		{
+			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), BeamParticle, SocketTransform);
+			if (Beam != nullptr)
+				Beam->SetVectorParameter("Target", BeamEndPosition);
 		}
 	}
 
