@@ -97,28 +97,49 @@ void AShooterCharacter::FireWeapon()
 		if (MuzzleFlash != nullptr)
 			UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), MuzzleFlash, SocketTransform);
 
-		FHitResult HitResult;
-		FVector Start = SocketTransform.GetLocation();
-		FVector End = Start + SocketTransform.GetRotation().GetAxisX() * 50'000.0f;
-		FVector BeamEndPosition = End;
-
-		this->GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility);
-		if (HitResult.bBlockingHit)
+		if (GEngine != nullptr && GEngine->GameViewport != nullptr)
 		{
-			//DrawDebugLine(this->GetWorld(), Start, End, FColor::Red, false, 2.0f);
-			//DrawDebugPoint(this->GetWorld(), HitResult.Location, 5.0f, FColor::Red, false, 2.0f);
+			FVector2D ViewportSize;
+			GEngine->GameViewport->GetViewportSize(ViewportSize);
+			
+			FVector2D ScreenPosition;
+			ScreenPosition.X = ViewportSize.X / 2;
+			ScreenPosition.Y = ViewportSize.Y / 2 - CameraBoom->SocketOffset.Y;
 
-			if (ImpactParticle != nullptr)
-				UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), ImpactParticle, HitResult.Location);
+			FVector CrossHairWorldPosition;
+			FVector CrossHairWorldDirection;
+			bool bFindPosition = UGameplayStatics::DeprojectScreenToWorld(
+				UGameplayStatics::GetPlayerController(this->GetWorld(), 0),
+				ScreenPosition,
+				CrossHairWorldPosition,
+				CrossHairWorldDirection
+			);
 
-			BeamEndPosition = HitResult.Location;
-		}
+			if (bFindPosition)
+			{
+				FVector Start = CrossHairWorldPosition;
+				FVector End = CrossHairWorldPosition + CrossHairWorldDirection * 50'000.0f;				
+				FVector BeamEndPosition = End;
 
-		if (BeamParticle != nullptr)
-		{
-			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), BeamParticle, SocketTransform);
-			if (Beam != nullptr)
-				Beam->SetVectorParameter("Target", BeamEndPosition);
+				FHitResult HitResult;
+				this->GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility);
+				if (HitResult.bBlockingHit)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("bFindPosition"));
+
+					if (ImpactParticle != nullptr)
+						UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), ImpactParticle, HitResult.Location);
+
+					BeamEndPosition = HitResult.Location;
+				}
+
+				if (BeamParticle != nullptr)
+				{
+					UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), BeamParticle, SocketTransform);
+					if (Beam != nullptr)
+						Beam->SetVectorParameter("Target", BeamEndPosition);
+				}
+			}
 		}
 	}
 

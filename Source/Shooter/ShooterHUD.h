@@ -14,7 +14,13 @@ class SHOOTER_API AShooterHUD : public AHUD
 {
 	GENERATED_BODY()
 
-public:
-
 private:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CrossHair, meta = (AllowPrivateAccess = "true"))
+	int32 Size;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CrossHair, meta = (AllowPrivateAccess = "true"))
+	class UTexture* CrossHairTexture;
+
+public:
+	AShooterHUD(const FObjectInitializer& ObjectInitializer);
+	virtual void DrawHUD() override;
 };
