@@ -124,14 +124,14 @@ void AShooterCharacter::FireWeapon()
 				FHitResult HitResult;
 				this->GetWorld()->LineTraceSingleByChannel(HitResult, Start, End, ECollisionChannel::ECC_Visibility);
 				if (HitResult.bBlockingHit)
-				{
-					UE_LOG(LogTemp, Warning, TEXT("bFindPosition"));
-
-					if (ImpactParticle != nullptr)
-						UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), ImpactParticle, HitResult.Location);
-
 					BeamEndPosition = HitResult.Location;
-				}
+
+				FVector WeaponTraceStart = SocketTransform.GetLocation();
+				FVector WeaponTraceEnd = BeamEndPosition;
+				FHitResult WeaponTraceHit;
+				this->GetWorld()->LineTraceSingleByChannel(WeaponTraceHit, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility);
+				if (WeaponTraceHit.bBlockingHit)
+					BeamEndPosition = WeaponTraceHit.Location;
 
 				if (BeamParticle != nullptr)
 				{
@@ -139,6 +139,9 @@ void AShooterCharacter::FireWeapon()
 					if (Beam != nullptr)
 						Beam->SetVectorParameter("Target", BeamEndPosition);
 				}
+
+				if (ImpactParticle != nullptr)
+					UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), ImpactParticle, BeamEndPosition);
 			}
 		}
 	}
