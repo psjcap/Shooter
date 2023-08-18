@@ -28,5 +28,8 @@ void UShooterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		FRotator AimRotator = ShooterCharacter->GetBaseAimRotation();
 		FRotator MoveRotator = UKismetMathLibrary::MakeRotFromX(ShooterCharacter->GetVelocity());
 		MovementOffsetYaw = UKismetMathLibrary::NormalizedDeltaRotator(MoveRotator, AimRotator).Yaw;
+
+		if (Speed > 0.0f)
+			LastMovementOffsetYaw = MovementOffsetYaw;
 	}
 }

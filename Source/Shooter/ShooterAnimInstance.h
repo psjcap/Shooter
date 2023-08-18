@@ -29,4 +29,6 @@ private:
 	bool bIsAcceleration;
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float MovementOffsetYaw;
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float LastMovementOffsetYaw;
 };
