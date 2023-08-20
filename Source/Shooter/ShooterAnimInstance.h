@@ -31,4 +31,6 @@ private:
 	float MovementOffsetYaw;
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float LastMovementOffsetYaw;
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	bool bAiming;
 };

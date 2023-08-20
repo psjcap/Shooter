@@ -15,16 +15,21 @@
 #include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
-AShooterCharacter::AShooterCharacter()
+AShooterCharacter::AShooterCharacter() :
+	bAiming(false),
+	DefaultFOV(0.0f),
+	ZoomedFOV(35.0f),
+	ZoomedFOVInterpolateSpeed(30.0f),
+	CurrentFOV(0.0f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	CameraBoom = this->CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 300.0f;
+	CameraBoom->TargetArmLength = 180.0f;
 	CameraBoom->bUsePawnControlRotation = true;
-	CameraBoom->SocketOffset = FVector(0.0f, 50.0f, 50.0f);
+	CameraBoom->SocketOffset = FVector(0.0f, 50.0f, 75.0f);
 
 	FollowCamera = this->CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
@@ -45,6 +50,12 @@ AShooterCharacter::AShooterCharacter()
 void AShooterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (FollowCamera != nullptr)
+	{
+		DefaultFOV = FollowCamera->FieldOfView;
+		CurrentFOV = DefaultFOV;
+	}
 }
 
 void AShooterCharacter::MoveForward(float Value)
@@ -157,10 +168,32 @@ void AShooterCharacter::FireWeapon()
 	}
 }
 
+void AShooterCharacter::PressAimingButton()
+{
+	bAiming = true;
+}
+
+void AShooterCharacter::ReleaseAimingButton()
+{
+	bAiming = false;
+}
+
+void AShooterCharacter::UpdateFOV(float DeltaTime)
+{
+	if (bAiming)
+		CurrentFOV = FMath::FInterpTo(CurrentFOV, ZoomedFOV, DeltaTime, ZoomedFOVInterpolateSpeed);
+	else
+		CurrentFOV = FMath::FInterpTo(CurrentFOV, DefaultFOV, DeltaTime, ZoomedFOVInterpolateSpeed);
+
+	FollowCamera->FieldOfView = CurrentFOV;
+}
+
 // Called every frame
 void AShooterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	this->UpdateFOV(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -175,5 +208,7 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &ThisClass::Jump);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Released, this, &ThisClass::StopJumping);
 	PlayerInputComponent->BindAction("FireButton", EInputEvent::IE_Pressed, this, &ThisClass::FireWeapon);
+	PlayerInputComponent->BindAction("AimingButton", EInputEvent::IE_Pressed, this, &ThisClass::PressAimingButton);
+	PlayerInputComponent->BindAction("AimingButton", EInputEvent::IE_Released, this, &ThisClass::ReleaseAimingButton);
 }
 

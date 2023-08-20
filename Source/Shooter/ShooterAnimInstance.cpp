@@ -31,5 +31,7 @@ void UShooterAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 		if (Speed > 0.0f)
 			LastMovementOffsetYaw = MovementOffsetYaw;
+
+		bAiming = ShooterCharacter->GetAiming();
 	}
 }
