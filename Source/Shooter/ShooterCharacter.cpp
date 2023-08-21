@@ -16,11 +16,21 @@
 
 // Sets default values
 AShooterCharacter::AShooterCharacter() :
+	bWeaponFireButtonPressed(false),
 	bAiming(false),
 	DefaultFOV(0.0f),
 	ZoomedFOV(35.0f),
 	ZoomedFOVInterpolateSpeed(30.0f),
-	CurrentFOV(0.0f)
+	CurrentFOV(0.0f),
+	AimRotateScale(0.1f),
+	NormalRotateScale(1.0f),
+	RotateScale(1.0f),
+	CrosshairSpreadMultiplier(1.0f),
+	CrosshairVelocityFactor(0.0f),
+	CrosshairJumpFactor(0.0f),
+	CrosshairAimFactor(0.0f),
+	bCrosshairWeaponFired(false),
+	CrosshairFireFactor(0.0f)
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
@@ -88,12 +98,12 @@ void AShooterCharacter::MoveRight(float Value)
 
 void AShooterCharacter::Turn(float Value)
 {
-	this->AddControllerYawInput(Value);
+	this->AddControllerYawInput(Value * RotateScale);
 }
 
 void AShooterCharacter::Lookup(float Value)
 {
-	this->AddControllerPitchInput(Value);
+	this->AddControllerPitchInput(Value * RotateScale);
 }
 
 void AShooterCharacter::FireWeapon()
@@ -154,7 +164,7 @@ void AShooterCharacter::FireWeapon()
 				if (ImpactParticle != nullptr)
 					UGameplayStatics::SpawnEmitterAtLocation(this->GetWorld(), ImpactParticle, BeamEndPosition);
 			}
-		}
+		}	
 	}
 
 	if (HipFireMontage != nullptr)
@@ -166,16 +176,39 @@ void AShooterCharacter::FireWeapon()
 			AnimInstance->Montage_JumpToSection("StartFire");
 		}
 	}
+
+	bCrosshairWeaponFired = true;
+
+	if (this->GetWorldTimerManager().IsTimerActive(CrosshairWeaponFiredTimerHandle))
+		this->GetWorldTimerManager().ClearTimer(CrosshairWeaponFiredTimerHandle);
+	this->GetWorldTimerManager().SetTimer(CrosshairWeaponFiredTimerHandle, this, &ThisClass::CrosshairWeaponFiredTimerEnd, 0.2f);	
+
+	if (this->GetWorldTimerManager().IsTimerActive(AutoWeaponFireTimerHandle))
+		this->GetWorldTimerManager().ClearTimer(AutoWeaponFireTimerHandle);
+	this->GetWorldTimerManager().SetTimer(AutoWeaponFireTimerHandle, this, &ThisClass::AutoWeaponFireTimerEnd, 0.1f);
 }
 
 void AShooterCharacter::PressAimingButton()
 {
 	bAiming = true;
+	RotateScale = AimRotateScale;
 }
 
 void AShooterCharacter::ReleaseAimingButton()
 {
 	bAiming = false;
+	RotateScale = NormalRotateScale;
+}
+
+void AShooterCharacter::WeaponFireButtonPressed()
+{
+	bWeaponFireButtonPressed = true;
+	this->FireWeapon();
+}
+
+void AShooterCharacter::WeaponFireButtonReleased()
+{
+	bWeaponFireButtonPressed = false;
 }
 
 void AShooterCharacter::UpdateFOV(float DeltaTime)
@@ -188,12 +221,48 @@ void AShooterCharacter::UpdateFOV(float DeltaTime)
 	FollowCamera->FieldOfView = CurrentFOV;
 }
 
+void AShooterCharacter::UpdateCrosshairSpreadMultiplier(float DeltaTime)
+{
+	FVector Velocity = this->GetVelocity();
+	Velocity.Z = 0.0f;
+	CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(FVector2D(0.0f, this->GetCharacterMovement()->GetMaxSpeed()), FVector2D(0.0f, 1.0f), Velocity.Size());
+
+	if (this->GetCharacterMovement()->IsFalling())
+		CrosshairJumpFactor = FMath::FInterpTo(CrosshairJumpFactor, 1.5f, DeltaTime, 160.0f);
+	else 
+		CrosshairJumpFactor = FMath::FInterpTo(CrosshairJumpFactor, 0.0f, DeltaTime, 20.0f);
+
+	if (bAiming)
+		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.5f, DeltaTime, 40.0f);
+	else
+		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.0f, DeltaTime, 80.0f);
+
+	if (bCrosshairWeaponFired)
+		CrosshairFireFactor = FMath::FInterpTo(CrosshairFireFactor, 1.5f, DeltaTime, 10.0f);
+	else
+		CrosshairFireFactor = FMath::FInterpTo(CrosshairFireFactor, 0.0f, DeltaTime, 10.0f);
+
+	CrosshairSpreadMultiplier = 0.5f + CrosshairVelocityFactor + CrosshairJumpFactor - CrosshairAimFactor + CrosshairFireFactor;
+}
+
+void AShooterCharacter::CrosshairWeaponFiredTimerEnd()
+{
+	bCrosshairWeaponFired = false;
+}
+
+void AShooterCharacter::AutoWeaponFireTimerEnd()
+{
+	if (bWeaponFireButtonPressed)
+		this->FireWeapon();
+}
+
 // Called every frame
 void AShooterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	this->UpdateFOV(DeltaTime);
+	this->UpdateCrosshairSpreadMultiplier(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -207,7 +276,8 @@ void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 	PlayerInputComponent->BindAxis("Lookup", this, &ThisClass::Lookup);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &ThisClass::Jump);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Released, this, &ThisClass::StopJumping);
-	PlayerInputComponent->BindAction("FireButton", EInputEvent::IE_Pressed, this, &ThisClass::FireWeapon);
+	PlayerInputComponent->BindAction("FireButton", EInputEvent::IE_Pressed, this, &ThisClass::WeaponFireButtonPressed);
+	PlayerInputComponent->BindAction("FireButton", EInputEvent::IE_Released, this, &ThisClass::WeaponFireButtonReleased);
 	PlayerInputComponent->BindAction("AimingButton", EInputEvent::IE_Pressed, this, &ThisClass::PressAimingButton);
 	PlayerInputComponent->BindAction("AimingButton", EInputEvent::IE_Released, this, &ThisClass::ReleaseAimingButton);
 }

@@ -18,7 +18,15 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CrossHair, meta = (AllowPrivateAccess = "true"))
 	int32 Size;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CrossHair, meta = (AllowPrivateAccess = "true"))
-	class UTexture* CrossHairTexture;
+	float SpreadSize;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CrossHair, meta = (AllowPrivateAccess = "true"))
+	class UTexture* CrossHairLeftTexture;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CrossHair, meta = (AllowPrivateAccess = "true"))
+	class UTexture* CrossHairTopTexture;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CrossHair, meta = (AllowPrivateAccess = "true"))
+	class UTexture* CrossHairRightTexture;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CrossHair, meta = (AllowPrivateAccess = "true"))
+	class UTexture* CrossHairBottomTexture;
 
 public:
 	AShooterHUD(const FObjectInitializer& ObjectInitializer);

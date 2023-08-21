@@ -26,8 +26,16 @@ protected:
 	void FireWeapon();
 	void PressAimingButton();
 	void ReleaseAimingButton();
+	void WeaponFireButtonPressed();
+	void WeaponFireButtonReleased();
 
 	void UpdateFOV(float DeltaTime);
+	void UpdateCrosshairSpreadMultiplier(float DeltaTime);
+
+	UFUNCTION()
+	void CrosshairWeaponFiredTimerEnd();
+	UFUNCTION()
+	void AutoWeaponFireTimerEnd();
 
 public:	
 	// Called every frame
@@ -36,6 +44,8 @@ public:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	bool bWeaponFireButtonPressed;
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Camera, meta = (AllowPrivateAccess = "true"))
@@ -62,8 +72,31 @@ private:
 	float ZoomedFOVInterpolateSpeed;
 	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	float CurrentFOV;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float AimRotateScale;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float NormalRotateScale;
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	float RotateScale;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Crosshair, meta = (AllowPrivateAccess = "true"))
+	float CrosshairSpreadMultiplier;
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Crosshair, meta = (AllowPrivateAccess = "true"))
+	float CrosshairVelocityFactor;
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Crosshair, meta = (AllowPrivateAccess = "true"))
+	float CrosshairJumpFactor;
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Crosshair, meta = (AllowPrivateAccess = "true"))
+	float CrosshairAimFactor;
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Crosshair, meta = (AllowPrivateAccess = "true"))
+	bool bCrosshairWeaponFired;
+	UPROPERTY(VisibleAnywhere, BlueprintReadonly, Category = Crosshair, meta = (AllowPrivateAccess = "true"))
+	float CrosshairFireFactor;
 
 public:
+	FTimerHandle CrosshairWeaponFiredTimerHandle;
+	FTimerHandle AutoWeaponFireTimerHandle;
+
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	FORCEINLINE bool GetAiming() const { return bAiming; }
+	FORCEINLINE float GetCrosshairSpreadMultiplier() const { return CrosshairSpreadMultiplier; }
 };
